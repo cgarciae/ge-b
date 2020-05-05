@@ -1,7 +1,27 @@
+import asyncio
+
+
+from python_path import PythonPath
 import typer
-from .utils import PagePool
+
+from tqdm import tqdm
 
 
-def find_links():
+from .sites import kdcapital
 
-    
+
+def main(debug: bool = False, headless: bool = True):
+
+    if debug:
+        import ptvsd
+
+        print("Waiting debugger...")
+        ptvsd.enable_attach()
+        ptvsd.wait_for_attach()
+        print("Connected")
+
+    print(asyncio.run(kdcapital.scrap(headless=headless)))
+
+
+if __name__ == "__main__":
+    typer.run(main)

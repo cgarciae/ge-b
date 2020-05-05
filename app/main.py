@@ -1,46 +1,25 @@
-from fastapi import Depends, FastAPI
+from fastapi import Depends, FastAPI, HTTPException
+from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from starlette.requests import Request
-from starlette.responses import JSONResponse
-from starlette.staticfiles import StaticFiles
+from starlette.responses import FileResponse, JSONResponse
 
-from . import params
-from .routes import scraper
+from . import env
+from .routes import kdcapital
 
 app = FastAPI()
 
 
-@app.middleware("http")
-async def get_authorization(request: Request, call_next):
+@app.post("/token")
+async def login(form_data: OAuth2PasswordRequestForm = Depends()):
+    if form_data.password != env.api_token:
+        raise HTTPException(status_code=400, detail="Incorrect username or password")
 
-    if not (
-        request.url.path.startswith("/docs")
-        or request.url.path.startswith("/openapi.json")
-        or request.url.path == "/api/pipeline"
-    ):
-        authorization = request.headers.get("authorization", "")
-        token = authorization.replace("Bearer", "").strip()
-
-        if token != params.api_token:
-            return JSONResponse(status_code=401, content=dict(message="Unauthorized"))
-
-    return await call_next(request)
-
-
-@app.middleware("http")
-async def add_download_headers(request: Request, call_next):
-
-    resp = await call_next(request)
-
-    if request.url.path.startswith("/static/xmps"):
-        filename = request.url.path.split("/")[-1]
-        resp.headers["Content-Disposition"] = f"attachment; filename={filename}"
-
-    return resp
+    return {"access_token": env.api_token, "token_type": "bearer"}
 
 
 app.include_router(
-    scraper.router,
-    prefix="/api",
+    kdcapital.router,
+    prefix="/api/kdcapital",
     tags=["api"],
     dependencies=[],
     responses={404: {"description": "Not found"}},
