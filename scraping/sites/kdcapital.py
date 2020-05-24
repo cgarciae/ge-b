@@ -223,13 +223,15 @@ async def get_machine_data(url: str, pool: utils.PagePool):
 
                     return {
                         name: document.querySelector("h1").textContent,
+                        description: tds[3].textContent,
                         salePrice: document.querySelector(".price").textContent,
+                        creationYear: tds[0].textContent,
+                        factory: tds[1].textContent,
+                        model: tds[2].textContent,
+                        reference: tds[4].textContent,
                         images: Array.from(document.querySelectorAll(".single-product-slider .nav-product-slider .slick-slide")).map(
                             div => div.style.backgroundImage
                         ),
-                        year: tds[0].textContent,
-                        model: tds[2].textContent,
-                        description: tds[3].textContent,
 
                     }
                 } catch(e) {
@@ -241,16 +243,49 @@ async def get_machine_data(url: str, pool: utils.PagePool):
         """
         )
 
+    def parse_float(s):
+        try:
+            return float(s)
+        except:
+            return 0.0
+
+    def parse_int(s):
+        try:
+            return int(s)
+        except:
+            return 0
+
     if "error" not in data:
         data["name"] = data["name"].strip()
-        data["salePrice"] = re.sub(r"[\$, ]", "", data["salePrice"])
-        data["images"] = list({url[5:-2] for url in data["images"]})
+        data["description"] = data["description"].strip()
+        data["salePrice"] = parse_float(
+            re.sub(r"[\$, ]", "", data["salePrice"]).strip()
+        )
         data["condition"] = 0  # Used
+        data["productStatus"] = 0
+        data["deliveryTime"] = ""
+        data["creationYear"] = parse_int(data["creationYear"])
+        data["factory"] = data["factory"].strip()
+        data["model"] = data["model"].strip()
+        data["reference"] = data["reference"].strip()
+
+        # TODO: implement these
+        # --------------------------------
+        data["capacity"] = 0.0
+        data["tonnage"] = 0.0
+        data["timeOperation"] = 0.0
+        data["power"] = 0.0
+        data["screwDiameter"] = 0.0
+        # --------------------------------
+
+        data["eti"] = data["reference"]
+        data["mailScrapping"] = "kdcapital"
+        data["images"] = list({url[5:-2] for url in data["images"]})
 
     # await asyncio.sleep(max(11 - (time.time() - t0), 0))
     await asyncio.sleep(1)
 
     # print()
-    # print(data)
+    # print(json.dumps(data, indent=2))
 
     return data
