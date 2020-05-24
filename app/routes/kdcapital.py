@@ -171,17 +171,7 @@ async def machine_urls(task: MachineUrlsRequest):
     return urls
 
 
-async def fetch_machine_urls(task: MachineUrlsRequest):
 
-    async with httpx.AsyncClient(timeout=None) as client:
-
-        r = await client.post(
-            f"{env.app_host}/api/kdcapital/machine-urls", json=task.dict(), timeout=None
-        )
-
-        r.raise_for_status()
-
-        return r.json()
 
 
 # ----------------------------------------------------------------

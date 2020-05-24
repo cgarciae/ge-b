@@ -4,6 +4,7 @@ services:
   server:
     build:
       context: .
+      dockerfile: app/Dockerfile
       args: {}
 
     image: "$IMAGE"
@@ -14,10 +15,18 @@ services:
     environment:
       PORT: 8000
       API_TOKEN: $API_TOKEN
-      WORKERS: $WORKERS
-      TASK_BUCKET: $TASK_BUCKET
-      TASK_FOLDER: $TASK_FOLDER
-      TOPIC_NAME: $TOPIC_NAME
-      GOOGLE_APPLICATION_CREDENTIALS: $GOOGLE_APPLICATION_CREDENTIALS
-      CLASSIFIER_TOKEN: $CLASSIFIER_TOKEN
-      CLASSIFIER_ENDPOINT: $CLASSIFIER_ENDPOINT
+
+  worker:
+    build:
+      context: .
+      dockerfile: scraping/Dockerfile
+      args: {}
+
+    image: "$IMAGE"
+
+    ports:
+      - "8000:8000"
+
+    environment:
+      PORT: 8000
+      API_TOKEN: $API_TOKEN

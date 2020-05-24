@@ -10,7 +10,7 @@ from tqdm import tqdm
 from .sites import kdcapital
 
 
-def main(debug: bool = False, headless: bool = True):
+def main(debug: bool = False, toy: bool = False, headless: bool = True):
 
     if debug:
         import ptvsd
@@ -20,7 +20,7 @@ def main(debug: bool = False, headless: bool = True):
         ptvsd.wait_for_attach()
         print("Connected")
 
-    print(asyncio.run(kdcapital.scrap(headless=headless)))
+    print(asyncio.run(kdcapital.scrap(toy=toy, headless=headless)))
 
 
 if __name__ == "__main__":

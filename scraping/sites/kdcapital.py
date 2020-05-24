@@ -9,12 +9,13 @@ from scraping import utils
 import re
 import json
 import time
+import httpx
 
 with PythonPath("."):
     from app import env
 
 
-async def scrap(headless: bool):
+async def scrap(toy: bool, headless: bool):
     try:
 
         async with utils.PagePool(workers=8, headless=headless) as pool:
@@ -27,7 +28,9 @@ async def scrap(headless: bool):
 
             print("Getting product category urls...")
             data = await get_product_category_urls(pool=pool)
-            data = cytoolz.take(1, data)
+
+            if toy:
+                data = cytoolz.take(1, data)
 
             # --------------------------------------------------------------------------
             # get search urls
@@ -35,7 +38,8 @@ async def scrap(headless: bool):
             data = pl.task.flat_map(
                 lambda url: get_search_urls(url, pool=pool), data, maxsize=1, workers=1
             )
-            data = utils.async_take(1, data)
+            if toy:
+                data = utils.async_take(1, data)
             data = pl.task.map(
                 utils.show_progress("Getting search urls"), data, maxsize=1, workers=1
             )
@@ -57,12 +61,13 @@ async def scrap(headless: bool):
             # get machine data
 
             data = pl.task.map(
-                lambda url, element_index: get_machine_data(
-                    url, element_index, pool=pool
-                ),
+                lambda url: get_machine_data(url, pool=pool),
                 data,
                 maxsize=1,
                 workers=1,
+            )
+            data = pl.task.filter(
+                lambda x: "error" not in x, data, maxsize=1, workers=1,
             )
             data = pl.task.map(
                 utils.show_progress("Getting machine data"), data, maxsize=1, workers=1,
@@ -71,6 +76,16 @@ async def scrap(headless: bool):
             data = await data
 
             print("DONE")
+
+            with httpx.AsyncClient(timeout=None) as client:
+                client: httpx.AsyncClient
+
+                r = await client.post(
+                    url="http://escoti.com/machine/bulkScrappingMachine",
+                    json=dict(apiKey="<TOKEN-APP>", machines=data),
+                )
+
+                r.raise_for_status()
 
             return data
     except BaseException as e:
@@ -148,9 +163,52 @@ async def get_machine_urls(url: str, pool: utils.PagePool) -> tp.List[str]:
     return hrefs
 
 
+async def fetch_machine_urls(
+    url: str, limit: int = 0, headless: bool = True, workers: int = 8
+):
+
+    async with httpx.AsyncClient(timeout=None) as client:
+
+        r = await client.post(
+            f"{env.app_host}/api/kdcapital/machine-urls",
+            json=dict(url=url, limit=limit, headless=headless, workers=workers),
+            timeout=None,
+        )
+
+        r.raise_for_status()
+
+        return r.json()
+
+
 async def get_machine_data(url: str, pool: utils.PagePool):
 
-    # print("get_machine_data", url)
+    print("get_machine_data", url)
+
+    """
+    {
+        apiKey: "<TOKEN-APP>",
+        machines:[{
+            "name": string(200)         
+            "description":  string
+            "salePrice": float          
+            "condition": int(1) [New : 1, Used : 0]
+            "productStatus":  int(11) [In production: 1, Connected to power: 2, In warehouse: 3]
+            "deliveryTime": string(10)          
+            "creationYear": int(11)         
+            "factory": string(100)          
+            "model": string(100)            
+            "reference": string(100)            
+            "capacity": float           
+            "tonnage": float            
+            "timeOperation": float          
+            "power": float          
+            "screwDiameter": float
+            "eti": string(100),
+            "mailScrapping": string(100),           
+            "images": Array[String]
+        }]
+    }
+    """
 
     async with pool.get() as page:
         t0 = time.time()
@@ -164,12 +222,14 @@ async def get_machine_data(url: str, pool: utils.PagePool):
                     let tds = document.querySelectorAll("table.shop_attributes > tbody > tr > td");
 
                     return {
-                        title: document.querySelector("h1").textContent,
-                        price: document.querySelector(".price").textContent,
+                        name: document.querySelector("h1").textContent,
+                        salePrice: document.querySelector(".price").textContent,
                         images: Array.from(document.querySelectorAll(".single-product-slider .nav-product-slider .slick-slide")).map(
                             div => div.style.backgroundImage
                         ),
                         year: tds[0].textContent,
+                        model: tds[2].textContent,
+                        description: tds[3].textContent,
 
                     }
                 } catch(e) {
@@ -182,9 +242,10 @@ async def get_machine_data(url: str, pool: utils.PagePool):
         )
 
     if "error" not in data:
-        data["title"] = data["title"].strip()
-        data["price"] = re.sub(r"[\$, ]", "", data["price"])
+        data["name"] = data["name"].strip()
+        data["salePrice"] = re.sub(r"[\$, ]", "", data["salePrice"])
         data["images"] = list({url[5:-2] for url in data["images"]})
+        data["condition"] = 0  # Used
 
     # await asyncio.sleep(max(11 - (time.time() - t0), 0))
     await asyncio.sleep(1)
