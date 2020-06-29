@@ -15,6 +15,11 @@ with PythonPath("."):
     from app import env
 
 
+class CategoryUrl(tp.NamedTuple):
+    category: str
+    url: str
+
+
 async def scrap(toy: bool, headless: bool):
     try:
 
@@ -27,7 +32,7 @@ async def scrap(toy: bool, headless: bool):
             # get product cateogory urls
 
             print("Getting product category urls...")
-            data = await get_product_category_urls(pool=pool)
+            data = [x async for x in get_product_category_urls(pool=pool)]
 
             if toy:
                 data = cytoolz.take(1, data)
@@ -40,9 +45,13 @@ async def scrap(toy: bool, headless: bool):
             )
             if toy:
                 data = utils.async_take(1, data)
+
             data = pl.task.map(
                 utils.show_progress("Getting search urls"), data, maxsize=1, workers=1
             )
+
+            if toy:
+                data = utils.async_take(1, data)
 
             # --------------------------------------------------------------------------
             # get machine urls
@@ -56,6 +65,9 @@ async def scrap(toy: bool, headless: bool):
             data = pl.task.map(
                 utils.show_progress("Getting machine urls"), data, maxsize=1, workers=1,
             )
+
+            if toy:
+                data = utils.async_take(1, data)
 
             # --------------------------------------------------------------------------
             # get machine data
@@ -75,19 +87,21 @@ async def scrap(toy: bool, headless: bool):
 
             data = await data
 
-            print("DONE")
+        print("DONE")
 
-            with httpx.AsyncClient(timeout=None) as client:
-                client: httpx.AsyncClient
+        async with httpx.AsyncClient(timeout=None) as client:
+            client: httpx.AsyncClient
 
-                r = await client.post(
-                    url="http://escoti.com/machine/bulkScrappingMachine",
-                    json=dict(apiKey="<TOKEN-APP>", machines=data),
-                )
+            r = await client.post(
+                url="http://escoti.com/machine/bulkScrappingMachine",
+                json=dict(apiKey="<TOKEN-APP>", machines=data),
+            )
 
-                r.raise_for_status()
+            r.raise_for_status()
 
-            return data
+            print("text", r.text)
+
+        return data
     except BaseException as e:
         print(e)
 
@@ -113,7 +127,9 @@ async def login(pool: utils.PagePool):
         # await asyncio.sleep(10)
 
 
-async def get_product_category_urls(pool: utils.PagePool) -> tp.List[str]:
+async def get_product_category_urls(
+    pool: utils.PagePool,
+) -> tp.AsyncIterable[CategoryUrl]:
 
     url = "https://www.kdcapital.com"
 
@@ -124,14 +140,19 @@ async def get_product_category_urls(pool: utils.PagePool) -> tp.List[str]:
             page, ".menu-item .kd-menu-item-sub > a", "href"
         )
 
-    return [
-        url
-        for url in urls
-        if url.startswith("https://www.kdcapital.com/product-category/")
-    ]
+    for url in urls:
+        if url.startswith("https://www.kdcapital.com/product-category/"):
+            print(
+                "category",
+                url.replace("https://www.kdcapital.com/product-category/", ""),
+            )
+            yield CategoryUrl(url, url)
 
 
-async def get_search_urls(url: str, pool: utils.PagePool) -> tp.List[str]:
+async def get_search_urls(
+    inputs: CategoryUrl, pool: utils.PagePool
+) -> tp.List[CategoryUrl]:
+    category, url = inputs.category, inputs.url
 
     async with pool.get() as page:
         await page.goto(url)
@@ -144,11 +165,16 @@ async def get_search_urls(url: str, pool: utils.PagePool) -> tp.List[str]:
         page_numbers = list(page_numbers)
         max_pages = max(page_numbers) if page_numbers else 1
 
-    return [url + f"page/{number}" for number in range(1, max_pages + 1)]
+    return [
+        CategoryUrl(category, url + f"page/{number}")
+        for number in range(1, max_pages + 1)
+    ]
 
 
-async def get_machine_urls(url: str, pool: utils.PagePool) -> tp.List[str]:
-
+async def get_machine_urls(
+    inputs: CategoryUrl, pool: utils.PagePool
+) -> tp.List[CategoryUrl]:
+    category, url = inputs.category, inputs.url
     # print("get_machine_urls", url)
 
     async with pool.get() as page:
@@ -156,33 +182,15 @@ async def get_machine_urls(url: str, pool: utils.PagePool) -> tp.List[str]:
         # raise Exception()
         await page.goto(url)
 
-        hrefs = await utils.querySelectorAllGetProperty(
+        hrefs: tp.List[str] = await utils.querySelectorAllGetProperty(
             page, "a.woocommerce-loop-product__link", "href"
         )
 
-    return hrefs
+    return [CategoryUrl(category, url) for url in hrefs]
 
 
-async def fetch_machine_urls(
-    url: str, limit: int = 0, headless: bool = True, workers: int = 8
-):
-
-    async with httpx.AsyncClient(timeout=None) as client:
-
-        r = await client.post(
-            f"{env.app_host}/api/kdcapital/machine-urls",
-            json=dict(url=url, limit=limit, headless=headless, workers=workers),
-            timeout=None,
-        )
-
-        r.raise_for_status()
-
-        return r.json()
-
-
-async def get_machine_data(url: str, pool: utils.PagePool):
-
-    print("get_machine_data", url)
+async def get_machine_data(inputs: CategoryUrl, pool: utils.PagePool):
+    category, url = inputs.category, inputs.url
 
     """
     {
@@ -281,6 +289,10 @@ async def get_machine_data(url: str, pool: utils.PagePool):
         data["eti"] = data["reference"]
         data["mailScrapping"] = "kdcapital"
         data["images"] = list({url[5:-2] for url in data["images"]})
+
+        # category / url
+        data["category"] = category
+        data["linkRef"] = url
 
     # await asyncio.sleep(max(11 - (time.time() - t0), 0))
     await asyncio.sleep(1)

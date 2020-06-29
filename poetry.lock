@@ -221,8 +221,8 @@ category = "main"
 description = ""
 name = "pypeln"
 optional = false
-python-versions = ">=3.7,<4.0"
-version = "0.3.2"
+python-versions = ">=3.6,<4.0"
+version = "0.4.3"
 
 [package.dependencies]
 stopit = ">=1.1.2,<2.0.0"
@@ -416,7 +416,7 @@ python-versions = ">=3.6.1"
 version = "8.1"
 
 [metadata]
-content-hash = "4831ef65e36eb231a0bffb7339f38afae154f013a6400c101367edb86d31633e"
+content-hash = "6360819b0367abfefdb1e30ab713a7c1d4964b4dbd722393d482278c68c8adb7"
 python-versions = "^3.8"
 
 [metadata.files]
@@ -548,8 +548,8 @@ pyee = [
     {file = "pyee-7.0.1.tar.gz", hash = "sha256:b0e5b89b17c8bd52a3c6517a545187907a8c69ce90169d29ebd8d2d5d7e4bc7d"},
 ]
 pypeln = [
-    {file = "pypeln-0.3.2-py3-none-any.whl", hash = "sha256:0b66be3c1ff07e74edecf853b41bdf9a0ee01b686dd331f81dfebadddba10fc7"},
-    {file = "pypeln-0.3.2.tar.gz", hash = "sha256:d0ac4ef1561a1eecbf4c96322ad989b7130c791e5133268e7d146db19b480804"},
+    {file = "pypeln-0.4.3-py3-none-any.whl", hash = "sha256:027ba3da1c3710cd85bc501eb75ea1857b66bf58f1a09b37605fcd26cfed6d03"},
+    {file = "pypeln-0.4.3.tar.gz", hash = "sha256:aecc13a6ddcc7b8fe1c2f1e2fe7575930dd4b2ead0f4dc69f65f4b63f36a8825"},
 ]
 pyppeteer2 = [
     {file = "pyppeteer2-0.2.2-py3-none-any.whl", hash = "sha256:a469e08b67d6bd87c29d7b5e401d7843213e2a535b3ffbe39a00635535662a46"},
