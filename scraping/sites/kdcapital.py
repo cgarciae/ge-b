@@ -10,6 +10,9 @@ import re
 import json
 import time
 import httpx
+import json
+from pathlib import Path
+
 
 with PythonPath("."):
     from app import env
@@ -22,6 +25,7 @@ class CategoryUrl(tp.NamedTuple):
 
 async def scrap(toy: bool, headless: bool):
     try:
+        categories = json.loads(Path("categories.json").read_text())
 
         async with utils.PagePool(workers=8, headless=headless) as pool:
 
@@ -32,7 +36,12 @@ async def scrap(toy: bool, headless: bool):
             # get product cateogory urls
 
             print("Getting product category urls...")
-            data = [x async for x in get_product_category_urls(pool=pool)]
+            data = [
+                x
+                async for x in get_product_category_urls(
+                    pool=pool, categories=categories
+                )
+            ]
 
             if toy:
                 data = cytoolz.take(1, data)
@@ -87,8 +96,6 @@ async def scrap(toy: bool, headless: bool):
 
             data = await data
 
-        print("DONE")
-
         async with httpx.AsyncClient(timeout=None) as client:
             client: httpx.AsyncClient
 
@@ -119,7 +126,6 @@ async def login(pool: utils.PagePool):
         """
         )
 
-        1
         await asyncio.gather(
             page.click(".woocommerce-Button"), page.waitForNavigation()
         )
@@ -128,7 +134,7 @@ async def login(pool: utils.PagePool):
 
 
 async def get_product_category_urls(
-    pool: utils.PagePool,
+    pool: utils.PagePool, categories: tp.Dict[str, str]
 ) -> tp.AsyncIterable[CategoryUrl]:
 
     url = "https://www.kdcapital.com"
@@ -142,11 +148,16 @@ async def get_product_category_urls(
 
     for url in urls:
         if url.startswith("https://www.kdcapital.com/product-category/"):
-            print(
-                "category",
-                url.replace("https://www.kdcapital.com/product-category/", ""),
+            kdc_category = url.replace(
+                "https://www.kdcapital.com/product-category/", ""
             )
-            yield CategoryUrl(url, url)
+
+            category = categories.get(kdc_category, "Other / Miscellaneous")
+
+            print("kdc_category", kdc_category)
+            print("category", category)
+
+            yield CategoryUrl(category, url)
 
 
 async def get_search_urls(
@@ -293,6 +304,7 @@ async def get_machine_data(inputs: CategoryUrl, pool: utils.PagePool):
         # category / url
         data["category"] = category
         data["linkRef"] = url
+        data["country"] = "United States"
 
     # await asyncio.sleep(max(11 - (time.time() - t0), 0))
     await asyncio.sleep(1)
