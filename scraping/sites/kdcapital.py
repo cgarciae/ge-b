@@ -44,6 +44,7 @@ async def scrap(toy: bool, headless: bool):
             ]
 
             if toy:
+                data = cytoolz.drop(2, data)
                 data = cytoolz.take(1, data)
 
             # --------------------------------------------------------------------------
@@ -96,12 +97,15 @@ async def scrap(toy: bool, headless: bool):
 
             data = await data
 
+        body = dict(apiKey="<TOKEN-APP>", machines=data)
+
+        print(json.dumps(body, indent=2))
+
         async with httpx.AsyncClient(timeout=None) as client:
             client: httpx.AsyncClient
 
             r = await client.post(
-                url="http://escoti.com/machine/bulkScrappingMachine",
-                json=dict(apiKey="<TOKEN-APP>", machines=data),
+                url="http://escoti.com/machine/bulkScrappingMachine", json=body,
             )
 
             r.raise_for_status()
@@ -136,7 +140,7 @@ async def login(pool: utils.PagePool):
 async def get_product_category_urls(
     pool: utils.PagePool, categories: tp.Dict[str, str]
 ) -> tp.AsyncIterable[CategoryUrl]:
-
+    t0 = time.time()
     url = "https://www.kdcapital.com"
 
     async with pool.get() as page:
@@ -145,6 +149,8 @@ async def get_product_category_urls(
         urls = await utils.querySelectorAllGetProperty(
             page, ".menu-item .kd-menu-item-sub > a", "href"
         )
+
+    await asyncio.sleep(max(15 - (time.time() - t0), 0))
 
     for url in urls:
         if url.startswith("https://www.kdcapital.com/product-category/"):
@@ -163,6 +169,7 @@ async def get_product_category_urls(
 async def get_search_urls(
     inputs: CategoryUrl, pool: utils.PagePool
 ) -> tp.List[CategoryUrl]:
+    t0 = time.time()
     category, url = inputs.category, inputs.url
 
     async with pool.get() as page:
@@ -176,6 +183,8 @@ async def get_search_urls(
         page_numbers = list(page_numbers)
         max_pages = max(page_numbers) if page_numbers else 1
 
+    await asyncio.sleep(max(15 - (time.time() - t0), 0))
+
     return [
         CategoryUrl(category, url + f"page/{number}")
         for number in range(1, max_pages + 1)
@@ -185,6 +194,7 @@ async def get_search_urls(
 async def get_machine_urls(
     inputs: CategoryUrl, pool: utils.PagePool
 ) -> tp.List[CategoryUrl]:
+    t0 = time.time()
     category, url = inputs.category, inputs.url
     # print("get_machine_urls", url)
 
@@ -196,6 +206,8 @@ async def get_machine_urls(
         hrefs: tp.List[str] = await utils.querySelectorAllGetProperty(
             page, "a.woocommerce-loop-product__link", "href"
         )
+
+    await asyncio.sleep(max(15 - (time.time() - t0), 0))
 
     return [CategoryUrl(category, url) for url in hrefs]
 
@@ -211,9 +223,9 @@ async def get_machine_data(inputs: CategoryUrl, pool: utils.PagePool):
             "description":  string
             "salePrice": float          
             "condition": int(1) [New : 1, Used : 0]
-            "productStatus":  int(11) [In production: 1, Connected to power: 2, In warehouse: 3]
+            "productStatus":  int(15) [In production: 1, Connected to power: 2, In warehouse: 3]
             "deliveryTime": string(10)          
-            "creationYear": int(11)         
+            "creationYear": int(15)         
             "factory": string(100)          
             "model": string(100)            
             "reference": string(100)            
@@ -239,10 +251,22 @@ async def get_machine_data(inputs: CategoryUrl, pool: utils.PagePool):
             () => {
                 try {
                     let tds = document.querySelectorAll("table.shop_attributes > tbody > tr > td");
+                    var description = Array.from(
+                        document
+                        .querySelectorAll("table.shop_attributes > tbody")
+                    )
+                    .slice(1)
+                    .flatMap(
+                        elem => Array.from(elem.querySelectorAll("tr"))
+                    )
+                    .map(
+                        elem => `${elem.children[0].textContent}: ${elem.children[1].textContent}`
+                    )
+                    .join("<br>");
 
                     return {
-                        name: document.querySelector("h1").textContent,
-                        description: tds[3].textContent,
+                        name: `${document.querySelector("h1").textContent} ${tds[3].textContent}`,
+                        description: description,
                         salePrice: document.querySelector(".price").textContent,
                         creationYear: tds[0].textContent,
                         factory: tds[1].textContent,
@@ -280,8 +304,8 @@ async def get_machine_data(inputs: CategoryUrl, pool: utils.PagePool):
         data["salePrice"] = parse_float(
             re.sub(r"[\$, ]", "", data["salePrice"]).strip()
         )
-        data["condition"] = 0  # Used
-        data["productStatus"] = 0
+        data["condition"] = "Used"
+        # data["productStatus"] = "In production"
         data["deliveryTime"] = ""
         data["creationYear"] = parse_int(data["creationYear"])
         data["factory"] = data["factory"].strip()
@@ -306,8 +330,8 @@ async def get_machine_data(inputs: CategoryUrl, pool: utils.PagePool):
         data["linkRef"] = url
         data["country"] = "United States"
 
-    # await asyncio.sleep(max(11 - (time.time() - t0), 0))
-    await asyncio.sleep(1)
+    await asyncio.sleep(max(15 - (time.time() - t0), 0))
+    # await asyncio.sleep(1)
 
     # print()
     # print(json.dumps(data, indent=2))
