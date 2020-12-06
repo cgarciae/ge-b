@@ -238,7 +238,7 @@ description = "A port of node.js's EventEmitter to python."
 name = "pyee"
 optional = false
 python-versions = "*"
-version = "7.0.1"
+version = "7.0.2"
 
 [[package]]
 category = "main"
@@ -254,7 +254,7 @@ stopit = ">=1.1.2,<2.0.0"
 [[package]]
 category = "main"
 description = "Headless chrome/chromium automation library (unofficial port of puppeteer)"
-name = "pyppeteer2"
+name = "pyppeteer"
 optional = false
 python-versions = ">=3.6.1,<4.0.0"
 version = "0.2.2"
@@ -459,7 +459,8 @@ python-versions = ">=3.6.1"
 version = "8.1"
 
 [metadata]
-content-hash = "5319f75c172daaeb49cc6adaa53c4c01383164e32316cbeef8f603bf6be3adb9"
+content-hash = "a06d22ecf2c65f79a17a45a8afbe104bad689234d2ca93f21813800a72019279"
+lock-version = "1.0"
 python-versions = "^3.8"
 
 [metadata.files]
@@ -633,16 +634,16 @@ pydantic = [
     {file = "pydantic-1.5.1.tar.gz", hash = "sha256:f0018613c7a0d19df3240c2a913849786f21b6539b9f23d85ce4067489dfacfa"},
 ]
 pyee = [
-    {file = "pyee-7.0.1-py2.py3-none-any.whl", hash = "sha256:705806bb09bc4b17a729d9a3d19a4f4e765abd010eb18e032d72f76452d07552"},
-    {file = "pyee-7.0.1.tar.gz", hash = "sha256:b0e5b89b17c8bd52a3c6517a545187907a8c69ce90169d29ebd8d2d5d7e4bc7d"},
+    {file = "pyee-7.0.2-py2.py3-none-any.whl", hash = "sha256:a0fee808414a4fc077d81be80dfe785879430b03101088747714c045292751c0"},
+    {file = "pyee-7.0.2.tar.gz", hash = "sha256:c908d1ecb32918bbf7dbb895a093153b0ca1ed8f04fc067d98bd4c5917aeb3d8"},
 ]
 pypeln = [
     {file = "pypeln-0.4.3-py3-none-any.whl", hash = "sha256:027ba3da1c3710cd85bc501eb75ea1857b66bf58f1a09b37605fcd26cfed6d03"},
     {file = "pypeln-0.4.3.tar.gz", hash = "sha256:aecc13a6ddcc7b8fe1c2f1e2fe7575930dd4b2ead0f4dc69f65f4b63f36a8825"},
 ]
-pyppeteer2 = [
-    {file = "pyppeteer2-0.2.2-py3-none-any.whl", hash = "sha256:a469e08b67d6bd87c29d7b5e401d7843213e2a535b3ffbe39a00635535662a46"},
-    {file = "pyppeteer2-0.2.2.tar.gz", hash = "sha256:61c8aa4d6ae8d751bf9b6dfbe5b38710ce82b4bde2e47f1f34811fcf61c9290f"},
+pyppeteer = [
+    {file = "pyppeteer-0.2.2-py3-none-any.whl", hash = "sha256:27d1f1a54e233428b4de3489d516db7d4805f67442bb77a7718cc04d7a40debb"},
+    {file = "pyppeteer-0.2.2.tar.gz", hash = "sha256:153c62666fe1d55b3941d1634733c02cafb47188fcf282987371e863d58f22e9"},
 ]
 python-dateutil = [
     {file = "python-dateutil-2.8.1.tar.gz", hash = "sha256:73ebfe9dbf22e832286dafa60473e4cd239f8592f699aa5adaf10050e6e1823c"},

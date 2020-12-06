@@ -1,16 +1,20 @@
 import asyncio
+import typing as tp
+from pathlib import Path
 
-
-from python_path import PythonPath
 import typer
-
+from python_path import PythonPath
 from tqdm import tqdm
-
 
 from .sites import kdcapital
 
 
-def main(debug: bool = False, toy: bool = False, headless: bool = True):
+def main(
+    body_path: tp.Optional[Path] = None,
+    debug: bool = False,
+    toy: bool = False,
+    headless: bool = True,
+):
 
     if debug:
         import ptvsd
@@ -20,7 +24,11 @@ def main(debug: bool = False, toy: bool = False, headless: bool = True):
         ptvsd.wait_for_attach()
         print("Connected")
 
-    print(asyncio.run(kdcapital.scrap(toy=toy, headless=headless)))
+    print(
+        asyncio.run(
+            kdcapital.scrap_sequential(toy=toy, headless=headless, body_path=body_path)
+        )
+    )
 
 
 if __name__ == "__main__":

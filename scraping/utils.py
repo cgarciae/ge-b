@@ -28,7 +28,6 @@ def show_progress(msg: str):
     return _update_bar
 
 
-
 class PagePool:
     def __init__(
         self, workers: int, headless: bool = True, args: tp.Tuple[str] = tuple()
@@ -44,7 +43,9 @@ class PagePool:
 
     async def __aenter__(self):
 
-        self.browser = await pyppeteer.launch(headless=self.headless, args=self.args)
+        self.browser = await pyppeteer.launch(
+            headless=self.headless, args=self.args, dumpio=True
+        )
 
         return self
 
