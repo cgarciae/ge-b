@@ -139,3 +139,6 @@ dmypy.json
 cython_debug/
 credentials.json
 body.json
+test.json
+resp.txt
+resp.json
