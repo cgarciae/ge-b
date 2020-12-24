@@ -24,10 +24,8 @@ def main(
         ptvsd.wait_for_attach()
         print("Connected")
 
-    print(
-        asyncio.run(
-            kdcapital.scrap_sequential(toy=toy, headless=headless, body_path=body_path)
-        )
+    asyncio.run(
+        kdcapital.scrap_sequential(toy=toy, headless=headless, body_path=body_path)
     )
 
 

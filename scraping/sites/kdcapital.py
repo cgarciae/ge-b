@@ -14,8 +14,8 @@ from python_path import PythonPath
 from scraping import utils
 from tqdm.std import tqdm
 
-with PythonPath("."):
-    from app import env
+# with PythonPath("."):
+#     from app import env
 
 
 class CategoryUrl(tp.NamedTuple):
@@ -206,6 +206,9 @@ async def scrap_sequential(
 
         body = dict(apiKey="<TOKEN-APP>", machines=data)
 
+        print("Saving BODY")
+        Path("body.json").write_text(json.dumps(body))
+
         async with httpx.AsyncClient(timeout=None) as client:
             client: httpx.AsyncClient
 
@@ -215,12 +218,14 @@ async def scrap_sequential(
 
             r.raise_for_status()
 
+            print("Saving RESP")
             Path("resp.txt").write_text(r.text)
 
         return data
     except BaseException as e:
         print(e)
         traceback.print_exc()
+        return None
 
 
 async def login(pool: utils.PagePool):
