@@ -46,8 +46,8 @@ async def scrap_sequential(
                 category_bar = tqdm(desc="Categories")
                 search_url_bar = tqdm(desc="Search Urls")
                 machine_url_bar = tqdm(desc="Machine Urls")
-                machine_data_bar = tqdm(desc="Machine Data")
                 good_machine_bar = tqdm(desc="Good Machines")
+                bad_machine_bar = tqdm(desc="Bad Machines")
 
                 async for category_url in get_product_category_urls(
                     pool=pool, categories=categories
@@ -66,11 +66,13 @@ async def scrap_sequential(
                                 machine_data = await asyncio.wait_for(
                                     get_machine_data(machine_url, pool=pool), timeout=30
                                 )
-                                machine_data_bar.update()
 
                                 if "error" not in machine_data:
                                     good_machine_bar.update()
                                     data.append(machine_data)
+                                else:
+                                    bad_machine_bar.update()
+
                             except:
                                 print("ERROR: get_machine_data")
 
