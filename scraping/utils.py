@@ -33,7 +33,7 @@ class PagePool:
         self,
         workers: int,
         headless: bool = True,
-        timeout: int = 60_000,
+        timeout: int = 100_000,
         args: tp.Tuple[str] = tuple(),
     ):
         self.semaphore = asyncio.Semaphore(workers)
@@ -44,7 +44,7 @@ class PagePool:
 
     def get(self) -> "PageManager":
 
-        return PageManager(self.semaphore, self.browser)
+        return PageManager(self.semaphore, self.browser, timeout=self.timeout)
 
     async def __aenter__(self):
 
@@ -62,17 +62,22 @@ class PagePool:
 
 class PageManager:
     def __init__(
-        self, semaphore: asyncio.Semaphore, browser: pyppeteer.browser.Browser
+        self,
+        semaphore: asyncio.Semaphore,
+        browser: pyppeteer.browser.Browser,
+        timeout: int,
     ):
         self.semaphore = semaphore
         self.browser = browser
         self.page: tp.Optional[pyppeteer.Page] = None
+        self.timeout = timeout
 
     async def __aenter__(self) -> pyppeteer.page.Page:
 
         await self.semaphore.acquire()
 
         self.page = await self.browser.newPage()
+        self.page.setDefaultNavigationTimeout(self.timeout)
 
         return self.page
 
