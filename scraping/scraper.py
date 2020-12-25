@@ -15,12 +15,11 @@ def main(
 ):
 
     if debug:
-        import ptvsd
+        import debugpy
 
         print("Waiting debugger...")
-        ptvsd.enable_attach()
-        ptvsd.wait_for_attach()
-        print("Connected")
+        debugpy.listen(5678)
+        debugpy.wait_for_client()
 
     asyncio.run(
         kdcapital.scrap_sequential(toy=toy, headless=headless, body_path=body_path)
