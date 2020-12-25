@@ -325,6 +325,8 @@ async def get_machine_data(inputs: CategoryUrl, pool: utils.PagePool):
         data["category"] = category
         data["linkRef"] = url
         data["country"] = "United States"
+    else:
+        data
 
     await asyncio.sleep(max(TIMEOUT - (time.time() - t0), 0))
 
