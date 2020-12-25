@@ -377,10 +377,12 @@ async def get_machine_data(inputs: CategoryUrl, pool: utils.PagePool):
                     )
                     .join("<br>");
 
+                    let price_node = document.querySelector(".shop_attributes .price");
+
                     return {
                         name: `${document.querySelector("h1").textContent} ${tds[3].textContent}`,
                         description: description,
-                        salePrice: document.querySelector(".price").textContent,
+                        salePrice: price_node ? price_node.textContent : "NP",
                         creationYear: tds[0].textContent,
                         factory: tds[1].textContent,
                         model: tds[2].textContent,
