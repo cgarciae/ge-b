@@ -30,11 +30,16 @@ def show_progress(msg: str):
 
 class PagePool:
     def __init__(
-        self, workers: int, headless: bool = True, args: tp.Tuple[str] = tuple()
+        self,
+        workers: int,
+        headless: bool = True,
+        timeout: int = 60_000,
+        args: tp.Tuple[str] = tuple(),
     ):
         self.semaphore = asyncio.Semaphore(workers)
         self.browser: tp.Optional[pyppeteer.Browser] = None
         self.headless = headless
+        self.timeout = timeout
         self.args = args + ("--no-sandbox",)
 
     def get(self) -> "PageManager":
@@ -44,7 +49,7 @@ class PagePool:
     async def __aenter__(self):
 
         self.browser = await pyppeteer.launch(
-            headless=self.headless, args=self.args, dumpio=True
+            headless=self.headless, args=self.args, dumpio=True, timeout=self.timeout,
         )
 
         return self
