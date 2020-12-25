@@ -1,23 +1,25 @@
 terraform {
   required_providers {
-    docker = {
-      source = "terraform-providers/docker"
+    google = {
+      source = "hashicorp/google"
+      version = "3.5.0"
     }
   }
-}
-
-provider "docker" {}
-
-resource "docker_image" "nginx" {
-  name         = "nginx:latest"
-  keep_locally = false
-}
-
-resource "docker_container" "nginx" {
-  image = docker_image.nginx.latest
-  name  = "tutorial"
-  ports {
-    internal = 80
-    external = 8000
+  backend "gcs" {
+    bucket  = "garesco-tf-state"
+    prefix  = "terraform/state"
   }
+}
+
+provider "google" {
+
+  credentials = file("credentials.json")
+
+  project = "garesco"
+  region  = "us-central1"
+  zone    = "us-central1-c"
+}
+
+resource "google_compute_network" "vpc_network" {
+  name = "terraform-network"
 }

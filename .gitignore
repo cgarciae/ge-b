@@ -145,3 +145,5 @@ body.json
 test.json
 resp.txt
 resp.json
+terraform.tfstate
+terraform.tfstate.backup
