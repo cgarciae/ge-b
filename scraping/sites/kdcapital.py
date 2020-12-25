@@ -7,15 +7,9 @@ import traceback
 import typing as tp
 from pathlib import Path
 
-import cytoolz
 import httpx
-import pypeln as pl
-from python_path import PythonPath
 from scraping import utils
 from tqdm.std import tqdm
-
-# with PythonPath("."):
-#     from app import env
 
 
 class CategoryUrl(tp.NamedTuple):
@@ -63,8 +57,8 @@ async def scrap_sequential(
                             machine_url_bar.update()
 
                             try:
-                                machine_data = await asyncio.wait_for(
-                                    get_machine_data(machine_url, pool=pool), timeout=30
+                                machine_data = await get_machine_data(
+                                    machine_url, pool=pool
                                 )
 
                                 if "error" not in machine_data:
@@ -73,8 +67,8 @@ async def scrap_sequential(
                                 else:
                                     bad_machine_bar.update()
 
-                            except:
-                                print("ERROR: get_machine_data")
+                            except BaseException as e:
+                                print(f"ERROR: {e}")
 
             body = dict(apiKey="<TOKEN-APP>", machines=data)
 

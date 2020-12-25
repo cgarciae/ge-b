@@ -3,8 +3,6 @@ import typing as tp
 from pathlib import Path
 
 import typer
-from python_path import PythonPath
-from tqdm import tqdm
 
 from .sites import kdcapital
 
