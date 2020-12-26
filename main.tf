@@ -20,6 +20,17 @@ provider "google" {
   zone    = "us-central1-c"
 }
 
-resource "google_compute_network" "vpc_network" {
-  name = "terraform-network"
+resource "google_pubsub_topic" "scraper_topic" {
+  name = "scraper"
+}
+
+resource "google_cloud_scheduler_job" "scraper_job" {
+  name        = "scraper"
+  schedule    = "0 9 * * SUN"
+
+  pubsub_target {
+    # topic.id is the topic's full resource name.
+    topic_name = google_pubsub_topic.scraper_topic.id
+    data       = base64encode("test")
+  }
 }
