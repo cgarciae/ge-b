@@ -9,6 +9,13 @@ import subprocess
 # utils
 # -------------------------------------------------------------------
 
+PROJECT_ID = "garesco"
+IMAGE = "scraper"
+IMAGE_URI = f"gcr.io/{PROJECT_ID}/{IMAGE}"
+# -------------------------------------------------------------------
+# utils
+# -------------------------------------------------------------------
+
 
 def archive_folder(folder_path: str) -> pulumi.AssetArchive:
     assets = {}
@@ -16,6 +23,12 @@ def archive_folder(folder_path: str) -> pulumi.AssetArchive:
         assets[file.name] = pulumi.FileAsset(path=file)
 
     return pulumi.AssetArchive(assets=assets)
+
+
+def get_archive_hash(folder_path: str) -> str:
+    return run(
+        f"find {folder_path} -type f -print0 | sort -z | xargs -0 sha1sum | sha1sum"
+    ).split()[0][-8:]
 
 
 def run(cmd: str) -> str:
@@ -46,19 +59,40 @@ job = gcp.cloudscheduler.Job(
     time_zone="America/Bogota",
 )
 
+
+build = gcp.cloudbuild.Trigger(
+    resource_name="build-image",
+    build=gcp.cloudbuild.TriggerBuildArgs(
+        images=[IMAGE_URI],
+        steps=[
+            gcp.cloudbuild.TriggerBuildStepArgs(
+                name="gcr.io/cloud-builders/docker",
+                args=["build", "-t", IMAGE_URI, "."],
+            ),
+            gcp.cloudbuild.TriggerBuildStepArgs(
+                name="gcr.io/cloud-builders/docker",
+                args=["push", IMAGE_URI],
+            ),
+        ],
+    ),
+)
+
 bucket = gcp.storage.Bucket("scraper")
 
-archive = archive_folder("cloud_function")
+archive = pulumi.FileArchive("cloud_function")
+archive_hash = get_archive_hash("cloud_function")
+
 
 archive = gcp.storage.BucketObject(
-    "launcher-archive",
+    f"launcher-archive",
     name=f"launcher-archive",
     bucket=bucket.name,
     source=archive,
 )
 
-fxn = gcp.cloudfunctions.Function(
-    "launcher-function",
+
+function = gcp.cloudfunctions.Function(
+    f"launcher-function-{archive_hash}",
     entry_point="main",
     runtime="python38",
     source_archive_bucket=bucket.name,
@@ -66,5 +100,8 @@ fxn = gcp.cloudfunctions.Function(
     event_trigger=gcp.cloudfunctions.FunctionEventTriggerArgs(
         event_type="google.pubsub.topic.publish",
         resource=topic.id,
+    ),
+    environment_variables=dict(
+        IMAGE_URI=IMAGE_URI,
     ),
 )

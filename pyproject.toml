@@ -13,6 +13,7 @@ httpx = "^0.16.1"
 debugpy = "^1.2.1"
 pulumi = "^2.16.2"
 pulumi-gcp = "^4.6.0"
+google-api-python-client = "^1.12.8"
 
 [tool.poetry.dev-dependencies]
 ptvsd = "^4.3.2"

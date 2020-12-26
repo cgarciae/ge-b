@@ -1,32 +1,5 @@
 version: "3.7"
 
 services:
-  server:
-    build:
-      context: .
-      dockerfile: app/Dockerfile
-      args: {}
-
-    image: "$IMAGE"
-
-    ports:
-      - "8000:8000"
-
-    environment:
-      PORT: 8000
-      API_TOKEN: $API_TOKEN
-
-  worker:
-    build:
-      context: .
-      dockerfile: scraping/Dockerfile
-      args: {}
-
-    image: "$IMAGE"
-
-    ports:
-      - "8000:8000"
-
-    environment:
-      PORT: 8000
-      API_TOKEN: $API_TOKEN
+  scraper:
+    build: .
