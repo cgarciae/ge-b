@@ -3,3 +3,5 @@ version: "3.7"
 services:
   scraper:
     build: .
+    image: gcr.io/garesco/scraper
+

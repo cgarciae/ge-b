@@ -1,17 +1,19 @@
+import base64
+import subprocess
+from pathlib import Path
+
 import pulumi
 import pulumi_gcp as gcp
-import base64
-from pathlib import Path
-import subprocess
-
+import pulumi_docker as docker
 
 # -------------------------------------------------------------------
-# utils
+# constants
 # -------------------------------------------------------------------
 
 PROJECT_ID = "garesco"
-IMAGE = "scraper"
-IMAGE_URI = f"gcr.io/{PROJECT_ID}/{IMAGE}"
+LAUCHER_PATH = "launcher"
+
+
 # -------------------------------------------------------------------
 # utils
 # -------------------------------------------------------------------
@@ -47,6 +49,14 @@ def to_b64(text: str) -> str:
 # config
 # -------------------------------------------------------------------
 
+image = docker.Image(
+    "image",
+    image_name=f"gcr.io/{PROJECT_ID}/scraper:latest",
+    build=docker.DockerBuild(
+        context=".",
+    ),
+)
+
 topic = gcp.pubsub.Topic("scraper")
 
 job = gcp.cloudscheduler.Job(
@@ -59,28 +69,10 @@ job = gcp.cloudscheduler.Job(
     time_zone="America/Bogota",
 )
 
-
-build = gcp.cloudbuild.Trigger(
-    resource_name="build-image",
-    build=gcp.cloudbuild.TriggerBuildArgs(
-        images=[IMAGE_URI],
-        steps=[
-            gcp.cloudbuild.TriggerBuildStepArgs(
-                name="gcr.io/cloud-builders/docker",
-                args=["build", "-t", IMAGE_URI, "."],
-            ),
-            gcp.cloudbuild.TriggerBuildStepArgs(
-                name="gcr.io/cloud-builders/docker",
-                args=["push", IMAGE_URI],
-            ),
-        ],
-    ),
-)
-
 bucket = gcp.storage.Bucket("scraper")
 
-archive = pulumi.FileArchive("cloud_function")
-archive_hash = get_archive_hash("cloud_function")
+archive = pulumi.FileArchive(LAUCHER_PATH)
+archive_hash = get_archive_hash(LAUCHER_PATH)
 
 
 archive = gcp.storage.BucketObject(
@@ -102,6 +94,7 @@ function = gcp.cloudfunctions.Function(
         resource=topic.id,
     ),
     environment_variables=dict(
-        IMAGE_URI=IMAGE_URI,
+        IMAGE_URI=image.image_name,
+        _ARCHIVE_HASH=archive_hash,
     ),
 )

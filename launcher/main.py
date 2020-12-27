@@ -14,19 +14,7 @@ def main(event, context):
         print(pubsub_message)
     """
 
-    # cmd = r"""
-    # gcloud ai-platform jobs submit training $JOB_NAME \
-    #     --region us-central1 \
-    #     --master-image-uri {image} \
-    #     --master-machine-type "n1-standard-8" \
-    #     --stream-logs \
-    #     --scale-tier "custom" \
-    #     --
-    # """.format(
-    #     image=image
-    # )
-
-    (
+    output = (
         discovery.build("ml", "v1", cache_discovery=False)
         .projects()
         .jobs()
@@ -47,3 +35,9 @@ def main(event, context):
         )
         .execute()
     )
+
+    print(output)
+
+
+if __name__ == "__main__":
+    main({}, {})

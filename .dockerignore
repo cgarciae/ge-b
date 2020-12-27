@@ -1,4 +1,5 @@
 *
-
 !/scraping
 !/poetry.lock
+!/pyproject.toml
+!/categories.json
