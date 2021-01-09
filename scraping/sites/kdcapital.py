@@ -6,10 +6,10 @@ import time
 import traceback
 import typing as tp
 from pathlib import Path
-from google.cloud import storage
-
 
 import httpx
+import typer
+from google.cloud import storage
 from scraping import utils
 from tqdm.std import tqdm
 
@@ -27,6 +27,7 @@ async def scrap_sequential(
     toy: bool,
     headless: bool,
     body_path: tp.Optional[Path] = None,
+    n_retries: int = 2,
 ):
     try:
         if body_path is None:
@@ -45,39 +46,52 @@ async def scrap_sequential(
                 good_machine_bar = tqdm(desc="Good Machines")
                 bad_machine_bar = tqdm(desc="Bad Machines")
 
-                if toy:
-                    tuples = list(categories.items())
-                    categories = dict(tuples[:1])
-
-                print("Login...")
-                await login(pool)
+                typer.echo("Login...")
+                await retry(n_retries, None, login, pool)
 
                 async for category_url in get_product_category_urls(
                     pool=pool, categories=categories
                 ):
                     category_bar.update()
 
-                    for search_url in await get_search_urls(category_url, pool=pool):
+                    search_urls = await retry(
+                        n_retries, [], get_search_urls, category_url, pool=pool
+                    )
+
+                    if toy:
+                        search_urls = search_urls[:1]
+
+                    for search_url in search_urls:
+                        search_url: CategoryUrl
                         search_url_bar.update()
 
-                        for machine_url in await get_machine_urls(
-                            search_url, pool=pool
-                        ):
+                        machine_urls = await retry(
+                            n_retries, [], get_machine_urls, search_url, pool=pool
+                        )
+
+                        if toy:
+                            machine_urls = machine_urls[:2]
+
+                        for machine_url in machine_urls:
+                            machine_url: CategoryUrl
                             machine_url_bar.update()
 
-                            try:
-                                machine_data = await get_machine_data(
-                                    machine_url, pool=pool
-                                )
+                            machine_data = await retry(
+                                n_retries,
+                                {"error": "failed retry"},
+                                get_machine_data,
+                                machine_url,
+                                pool=pool,
+                            )
 
-                                if "error" not in machine_data:
-                                    good_machine_bar.update()
-                                    data.append(machine_data)
-                                else:
-                                    bad_machine_bar.update()
+                            if "error" not in machine_data:
+                                good_machine_bar.update()
+                                data.append(machine_data)
+                            else:
+                                bad_machine_bar.update()
 
-                            except BaseException as e:
-                                print(f"ERROR: {e}")
+                    if toy:
+                        break
 
             def update_machine(machine):
                 machine["eti"] = (
@@ -93,7 +107,7 @@ async def scrap_sequential(
 
             body = dict(apiKey="<TOKEN-APP>", machines=data)
 
-            print("Saving BODY")
+            typer.echo("Saving BODY")
             Path("body.json").write_text(json.dumps(body))
         else:
             body = json.loads(body_path.read_text())
@@ -116,12 +130,12 @@ async def scrap_sequential(
 
             r.raise_for_status()
 
-            print("Saving RESP")
+            typer.echo("Saving RESP")
             Path("resp.txt").write_text(r.text)
 
         return data
     except BaseException as e:
-        print(e)
+        typer.echo(e)
         traceback.print_exc()
         return None
 
@@ -133,6 +147,31 @@ def upload_body(bucket_name: str, body):
     blob.cache_control = "no-cache"
     blob.upload_from_string(json.dumps(body, indent=2), content_type="application/json")
     blob.make_public()
+
+
+T = tp.TypeVar("T")
+
+
+async def retry(
+    n: int,
+    default: tp.Optional[T],
+    f: tp.Callable[..., tp.Awaitable[T]],
+    *arg,
+    **kwargs,
+):
+    for i in range(n):
+        try:
+            return await f(*arg, **kwargs)
+        except BaseException as e:
+            if i == n - 1:
+                if default is None:
+                    raise
+                else:
+                    typer.echo(
+                        f"Warning: failed {n} times at running {f}, got error: {e}"
+                    )
+
+    return default
 
 
 async def login(pool: utils.PagePool):
