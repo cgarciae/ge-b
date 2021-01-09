@@ -69,7 +69,12 @@ job = gcp.cloudscheduler.Job(
     time_zone="America/Bogota",
 )
 
-bucket = gcp.storage.Bucket("scraper")
+bucket = gcp.storage.Bucket(
+    "scraper",
+    storage_class="REGIONAL",
+    location="us-central1",
+    force_destroy=True,
+)
 
 archive = pulumi.FileArchive(LAUCHER_PATH)
 archive_hash = get_archive_hash(LAUCHER_PATH)
@@ -95,6 +100,7 @@ function = gcp.cloudfunctions.Function(
     ),
     environment_variables=dict(
         IMAGE_URI=image.image_name,
+        BUCKET_NAME=bucket.name,
         _ARCHIVE_HASH=archive_hash,
     ),
 )

@@ -29,7 +29,7 @@ def main(event, context):
                     masterConfig=dict(
                         imageUri=os.environ["IMAGE_URI"],
                     ),
-                    args=[],
+                    args=["--bucket-name", os.environ["BUCKET_NAME"]],
                 ),
             ),
         )

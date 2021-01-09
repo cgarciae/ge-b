@@ -6,6 +6,8 @@ import time
 import traceback
 import typing as tp
 from pathlib import Path
+from google.cloud import storage
+
 
 import httpx
 from scraping import utils
@@ -21,16 +23,16 @@ TIMEOUT = 10
 
 
 async def scrap_sequential(
-    toy: bool, headless: bool, body_path: tp.Optional[Path] = None
+    bucket_name: str,
+    toy: bool,
+    headless: bool,
+    body_path: tp.Optional[Path] = None,
 ):
     try:
         if body_path is None:
             categories = json.loads(Path("categories.json").read_text())
 
             async with utils.PagePool(workers=2, headless=headless) as pool:
-
-                print("Login...")
-                await login(pool)
 
                 # --------------------------------------------------------------------------
                 # get product cateogory urls
@@ -42,6 +44,13 @@ async def scrap_sequential(
                 machine_url_bar = tqdm(desc="Machine Urls")
                 good_machine_bar = tqdm(desc="Good Machines")
                 bad_machine_bar = tqdm(desc="Bad Machines")
+
+                if toy:
+                    tuples = list(categories.items())
+                    categories = dict(tuples[:1])
+
+                print("Login...")
+                await login(pool)
 
                 async for category_url in get_product_category_urls(
                     pool=pool, categories=categories
@@ -70,36 +79,39 @@ async def scrap_sequential(
                             except BaseException as e:
                                 print(f"ERROR: {e}")
 
+            def update_machine(machine):
+                machine["eti"] = (
+                    machine["eti"]
+                    .replace(" ", "")[:10]
+                    .translate(str.maketrans("", "", string.punctuation))
+                )
+                return machine
+
+            data = map(update_machine, data)
+            data = filter(lambda machine: machine["images"], data)
+            data = list(data)
+
             body = dict(apiKey="<TOKEN-APP>", machines=data)
 
-            with open(Path("body.json"), "w") as f:
-                json.dump(body, f, indent=2)
+            print("Saving BODY")
+            Path("body.json").write_text(json.dumps(body))
         else:
             body = json.loads(body_path.read_text())
             data = body["machines"]
 
-        def update_machine(machine):
-            machine["eti"] = (
-                machine["eti"]
-                .replace(" ", "")[:10]
-                .translate(str.maketrans("", "", string.punctuation))
-            )
-            return machine
+        await asyncio.get_event_loop().run_in_executor(
+            None, lambda: upload_body(bucket_name, body)
+        )
 
-        data = map(update_machine, data)
-        data = filter(lambda machine: machine["images"], data)
-        data = list(data)
-
-        body = dict(apiKey="<TOKEN-APP>", machines=data)
-
-        print("Saving BODY")
-        Path("body.json").write_text(json.dumps(body))
+        if toy:
+            return
 
         async with httpx.AsyncClient(timeout=None) as client:
             client: httpx.AsyncClient
 
             r = await client.post(
-                url="http://escoti.com/machine/bulkScrappingMachine", json=body,
+                url="http://escoti.com/machine/bulkScrappingMachine",
+                json=body,
             )
 
             r.raise_for_status()
@@ -112,6 +124,15 @@ async def scrap_sequential(
         print(e)
         traceback.print_exc()
         return None
+
+
+def upload_body(bucket_name: str, body):
+    client = storage.Client()
+    bucket = client.get_bucket(bucket_name)
+    blob = bucket.blob("body.json")
+    blob.cache_control = "no-cache"
+    blob.upload_from_string(json.dumps(body, indent=2), content_type="application/json")
+    blob.make_public()
 
 
 async def login(pool: utils.PagePool):

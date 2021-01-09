@@ -8,6 +8,7 @@ from .sites import kdcapital
 
 
 def main(
+    bucket_name: str = typer.Option(...),
     body_path: tp.Optional[Path] = None,
     debug: bool = False,
     toy: bool = False,
@@ -22,7 +23,12 @@ def main(
         debugpy.wait_for_client()
 
     asyncio.run(
-        kdcapital.scrap_sequential(toy=toy, headless=headless, body_path=body_path)
+        kdcapital.scrap_sequential(
+            bucket_name=bucket_name,
+            toy=toy,
+            headless=headless,
+            body_path=body_path,
+        )
     )
 
 

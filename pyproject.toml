@@ -15,6 +15,7 @@ pulumi = "^2.16.2"
 pulumi-gcp = "^4.6.0"
 google-api-python-client = "^1.12.8"
 pulumi-docker = "^2.5.0"
+google-cloud-storage = "^1.35.0"
 
 [tool.poetry.dev-dependencies]
 ptvsd = "^4.3.2"

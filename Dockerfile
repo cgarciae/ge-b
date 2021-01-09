@@ -17,6 +17,9 @@ RUN pyppeteer-install
 
 ADD ./scraping scraping
 ADD ./categories.json categories.json
+ADD ./credentials.json credentials.json
+
+ENV GOOGLE_APPLICATION_CREDENTIALS "/code/credentials.json"
 
 ENTRYPOINT ["python", "-m", "scraping.scraper"]
 

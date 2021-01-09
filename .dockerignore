@@ -3,3 +3,4 @@
 !/poetry.lock
 !/pyproject.toml
 !/categories.json
+!/credentials.json
