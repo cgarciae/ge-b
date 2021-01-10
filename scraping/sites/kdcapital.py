@@ -106,16 +106,25 @@ async def scrap_sequential(
             data = list(data)
 
             body = dict(apiKey="<TOKEN-APP>", machines=data)
+            stats = dict(
+                categories=category_bar.n,
+                search_urls=search_url_bar.n,
+                good_machines=good_machine_bar.n,
+                bad_machines=bad_machine_bar.n,
+            )
+
+            await asyncio.get_event_loop().run_in_executor(
+                None, lambda: upload_json(bucket_name, "body.json", body)
+            )
+            await asyncio.get_event_loop().run_in_executor(
+                None, lambda: upload_json(bucket_name, "stats.json", stats)
+            )
 
             typer.echo("Saving BODY")
             Path("body.json").write_text(json.dumps(body))
         else:
             body = json.loads(body_path.read_text())
             data = body["machines"]
-
-        await asyncio.get_event_loop().run_in_executor(
-            None, lambda: upload_body(bucket_name, body)
-        )
 
         if toy:
             return
@@ -140,12 +149,12 @@ async def scrap_sequential(
         return None
 
 
-def upload_body(bucket_name: str, body):
+def upload_json(bucket_name: str, path: str, data: tp.Dict):
     client = storage.Client()
     bucket = client.get_bucket(bucket_name)
-    blob = bucket.blob("body.json")
+    blob = bucket.blob(path)
     blob.cache_control = "no-cache"
-    blob.upload_from_string(json.dumps(body, indent=2), content_type="application/json")
+    blob.upload_from_string(json.dumps(data, indent=2), content_type="application/json")
     blob.make_public()
 
 
@@ -170,6 +179,8 @@ async def retry(
                     typer.echo(
                         f"Warning: failed {n} times at running {f}, got error: {e}"
                     )
+            else:
+                await asyncio.sleep(1)
 
     return default
 
@@ -311,8 +322,9 @@ async def get_machine_data(inputs: CategoryUrl, pool: utils.PagePool):
                         elem => Array.from(elem.querySelectorAll("tr"))
                     )
                     .map(
-                        elem => `${elem.children[0].textContent}: ${elem.children[1].textContent}`
+                        elem => elem.children[1] ? `${elem.children[0].textContent}: ${elem.children[1].textContent}` : elem.children[0].textContent
                     )
+                    .map(s => s.trim())
                     .join("<br>");
 
                     let price_node = document.querySelector(".shop_attributes .price");
