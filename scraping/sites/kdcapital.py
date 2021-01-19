@@ -6,6 +6,7 @@ import time
 import traceback
 import typing as tp
 from pathlib import Path
+from datetime import datetime
 
 import httpx
 import typer
@@ -111,6 +112,7 @@ async def scrap_sequential(
                 search_urls=search_url_bar.n,
                 good_machines=good_machine_bar.n,
                 bad_machines=bad_machine_bar.n,
+                date=str(datetime.now()),
             )
 
             await asyncio.get_event_loop().run_in_executor(
