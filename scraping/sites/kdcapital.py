@@ -189,19 +189,19 @@ async def retry(
 
 async def login(pool: utils.PagePool):
 
-    url = "https://www.kdcapital.com/login/"
+    url = "https://www.kdcapital.com/re-verify-activate-prices"
 
     async with pool.get() as page:
 
         await page.goto(url)
         await page.evaluate(
             """
-            document.querySelector(".woocommerce-Input--text").value = "cgarcia.e88@gmail.com";
+            document.querySelector("#re-verify-email").value = "cgarcia.e88@gmail.com";
         """
         )
 
         await asyncio.gather(
-            page.click(".woocommerce-Button"), page.waitForNavigation()
+            page.click(".re-verify-saleforces .submit-button"), page.waitForNavigation()
         )
 
         # await asyncio.sleep(10)
